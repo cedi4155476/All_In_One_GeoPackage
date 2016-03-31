@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/AllInOneGeopackage" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
