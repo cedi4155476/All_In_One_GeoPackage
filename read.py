@@ -1,4 +1,4 @@
 class Read():
-    def __init__(self, parent=None, iface):
+    def __init__(self, iface, parent=None):
         self.parent = parent
         self.iface = iface

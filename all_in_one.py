@@ -64,7 +64,8 @@ class AllInOneGeopackage:
         self.iface.removeToolBarIcon(self.actionRead)
 
     def write(self):
-        write = Write(self.iface.mainWindow(), self.iface)
+        write = Write(self.iface, self.iface.mainWindow())
+        write.run()
 
     def read(self):
-        read = Read(self.iface.mainWindow(), self.iface)
+        read = Read(self.iface, self.iface.mainWindow())
