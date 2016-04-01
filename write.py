@@ -34,9 +34,6 @@ class Write():
         ''' Es wird überprüft, ob die Datei wirklich ein Geopackage ist '''
         # TODO: ist das möglich?
         return True
-        # sql = u"SELECT CheckGeoPackageMetaData()"
-        # result = self.c.execute(sql).fetchone()[0] == 1
-        # return result
 
     def make_path_absolute(self, path, project_path):
         ''' Pfad wird Absolut und Betriebsystemübergreifend gemacht'''
@@ -94,6 +91,15 @@ class Write():
             # Stammen die Layer nicht aus einer GeoPackage Datei, kann nicht weiterverarbeitet werden
             raise
 
+        # Es wird nach Bildern im Projekt gesucht
+        composer_list = root.findall("Composer")
+        images = []
+        for composer in composer_list:
+            for comp in composer:
+                img = self.make_path_absolute(comp.find("ComposerPicture").attrib['file'], project_path)
+                if img not in images:
+                    images.append(img)
+
         # Die Daten werden in die Datenbank eingeschrieben
         inserts = (os.path.basename(project.fileName()), ET.tostring(root))
         extensions = (None, None, 'all_in_one_geopackage', 'Insert and read a QGIS Project file into the GeoPackage database.', 'read-write')
@@ -105,4 +111,18 @@ class Write():
             self.c.execute('CREATE TABLE _qgis (name text, xml text)')
             self.c.execute('INSERT INTO _qgis VALUES (?,?)', inserts)
             self.c.execute('INSERT INTO gpkg_extensions VALUES (?,?,?,?,?)', extensions)
-            self.conn.commit()
+
+        if images:
+            # Falls vorhanden, werden hier die Bilder in die Datenbank eingelesen
+            # Jedoch nur, wenn die Tabelle noch nicht existiert
+            try:
+                self.c.execute('SELECT name FROM _img_project')
+            except sqlite3.OperationalError:
+                self.c.execute('CREATE TABLE _img_project (name text, type text, blob blob)')
+                for image in images:
+                    with open(image, 'rb') as input_file:
+                        blob = input_file.read()
+                        name, type = os.path.splitext(os.path.basename(image))
+                        inserts = (name, type, sqlite3.Binary(blob))
+                        self.conn.execute('INSERT INTO _img_project VALUES(?, ?, ?)', inserts)
+        self.conn.commit()
