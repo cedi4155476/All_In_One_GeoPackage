@@ -1,7 +1,9 @@
 # coding=latin-1
 
 from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 import tempfile
 import os
 import sqlite3
@@ -17,7 +19,7 @@ class Write():
     def read_project(self, path):
         ''' Überprüfen ob es sich um ein File handelt und dieses dann als ElementTree objekt zurückgeben '''
         if not os.path.isfile(path):
-            return
+            return False
 
         return ET.parse(path)
 
@@ -32,8 +34,12 @@ class Write():
 
     def check_gpkg(self, path):
         ''' Es wird überprüft, ob die Datei wirklich ein Geopackage ist '''
-        # TODO: ist das möglich?
-        return True
+        try:
+            self.c.execute('SELECT * FROM gpkg_contents')
+            self.c.fetchone()
+            return True
+        except:
+            return False
 
     def make_path_absolute(self, path, project_path):
         ''' Pfad wird Absolut und Betriebsystemübergreifend gemacht'''
@@ -60,6 +66,11 @@ class Write():
             xmltree = self.read_project(project_path)
             project.dirty(False)
 
+        # Wenn etwas mit der Projektdatei nicht mehr stimmt, muss abgebrochen werden.
+        if not xmltree:
+            self.iface.messageBar().pushMessage("Error", "Es gibt Probleme mit der Projektdatei, bitte überprüfen Sie diese.", level=QgsMessageBar.CRITICAL)
+            return
+
         root = xmltree.getroot()
         projectlayers = root.find("projectlayers")
 
@@ -81,7 +92,9 @@ class Write():
                     elif self.check_gpkg(path) and gpkg_found:
                         # Hat ein Projekt Layer aus verschiedenen GeoPackage Datenbanken,
                         # kann das Einschreiben nicht ausgeführt werden
-                        raise
+                        self.iface.messageBar().pushMessage("Error", "Es werden mehrere GeoPackage Datenbanken vom Projekt benutzt.", level=QgsMessageBar.CRITICAL)
+                        return
+            self.iface.messageBar().pushMessage("Warnung", "Es kann nicht garantiert werden, dass Layer, welche nicht im GeoPackage gespeichert sind, beim auslesen richtig angezeigt werden.", level=QgsMessageBar.WARNING)
         else:
             gpkg_path = sources[0]
 
@@ -107,6 +120,9 @@ class Write():
         try:
             # Falls bereits ein Projekt vorhanden ist, wird nichts geändert
             self.c.execute('SELECT name FROM _qgis')
+            reply = QMessageBox.question(self.parent, "Warnung", "Es ist bereits ein Projekt vorhanden, \nSoll dieses Überschrieben werden?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes
+            if reply:
+                self.c.execute('UPDATE _qgis SET name=?, xml=?', inserts)
         except sqlite3.OperationalError:
             self.c.execute('CREATE TABLE _qgis (name text, xml text)')
             self.c.execute('INSERT INTO _qgis VALUES (?,?)', inserts)
@@ -117,6 +133,9 @@ class Write():
             # Jedoch nur, wenn die Tabelle noch nicht existiert
             try:
                 self.c.execute('SELECT name FROM _img_project')
+                if reply:
+                    self.c.execute('DROP TABLE _img_project')
+                    raise sqlite3.OperationalError
             except sqlite3.OperationalError:
                 self.c.execute('CREATE TABLE _img_project (name text, type text, blob blob)')
                 for image in images:
