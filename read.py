@@ -61,7 +61,8 @@ class Read():
         projectlayers = root.find("projectlayers")
 
         # layerpfäde im xml werden angepasst
-        project_path = os.path.join(tempfile.gettempdir(), file_name)
+        tmp_folder = tempfile.mkdtemp()
+        project_path = os.path.join(tmp_folder, file_name)
         for layer in projectlayers:
             layer_element = layer.find("datasource")
             layer_info = layer_element.text.split("|")
@@ -96,7 +97,7 @@ class Read():
             for img in images:
                 name, type, blob = img
                 img_name = name + type
-                img_path = os.path.join(tempfile.gettempdir(), img_name)
+                img_path = os.path.join(tmp_folder, img_name)
                 with open(img_path, 'wb') as file:
                     file.write(blob)
                 QgsMessageLog.logMessage("Bild wurde gespeichert: " + img_name, 'All-In-One Geopackage', QgsMessageLog.INFO)
