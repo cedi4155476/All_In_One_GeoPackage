@@ -4,6 +4,7 @@ import tempfile
 import sqlite3
 import os
 from qgis.core import *
+from qgis.gui import *
 from PyQt4.QtCore import *
 from xml.etree import ElementTree as ET
 
@@ -41,10 +42,15 @@ class Read():
         # Überprüfen ob es sich um eine GeoPackage Datei handelt
         self.database_connect(gpkg_path)
         if not self.check_gpkg(gpkg_path):
-            print "please select gpkg"
+            self.iface.messageBar().pushMessage("Error", "Bitte wählen Sie eine GeoPackage Datei.", level=QgsMessageBar.CRITICAL)
+            return
 
         # Den XML-Code aus der Datenbank herauslesen
-        self.c.execute('SELECT name, xml FROM _qgis')
+        try:
+            self.c.execute('SELECT name, xml FROM _qgis')
+        except sqlite3.OperationalError:
+            self.iface.messageBar().pushMessage("Error", "Es befindet sich keine Projektdatei in der Datenbank.", level=QgsMessageBar.CRITICAL)
+            return
         file_name, xml = self.c.fetchone()
         xml_tree = ET.ElementTree()
         root = ET.fromstring(xml)
@@ -88,6 +94,7 @@ class Read():
                 img_path = os.path.join(tempfile.gettempdir(), img_name)
                 with open(img_path, 'wb') as file:
                     file.write(blob)
+
         # Projekt wird gespeichert und gestartet
         xml_tree.write(project_path)
         QgsProject.instance().read(QFileInfo(project_path))
