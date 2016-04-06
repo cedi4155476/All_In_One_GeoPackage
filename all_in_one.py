@@ -39,20 +39,20 @@ class AllInOneGeopackage:
     def initGui(self):
         self.actionWrite = QAction(
             QIcon(":/plugins/AllInOneGeopackage/write.png"),
-            u"Write Project in GeoPackage",
+            u"Schreibe Projekt in GeoPackage",
             self.iface.mainWindow()
         )
-        self.actionWrite.setWhatsThis(u"Write Project in GeoPackage")
+        self.actionWrite.setWhatsThis(u"Schreibe Projekt in GeoPackage")
         self.iface.addPluginToMenu("&All-In-One Geopackage", self.actionWrite)
         self.toolbar.addAction(self.actionWrite)
         QObject.connect(self.actionWrite, SIGNAL("triggered()"), self.write)
 
         self.actionRead = QAction(
             QIcon(":/plugins/AllInOneGeopackage/read.png"),
-            u"Read Project from GeoPackage",
+            u"Lese Projekt aus GeoPackage",
             self.iface.mainWindow()
         )
-        self.actionRead.setWhatsThis(u"Read Project from GeoPackage")
+        self.actionRead.setWhatsThis(u"Lese Projekt aus GeoPackage")
         self.iface.addPluginToMenu("&All-In-One Geopackage", self.actionRead)
         self.toolbar.addAction(self.actionRead)
         QObject.connect(self.actionRead, SIGNAL("triggered()"), self.read)
