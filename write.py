@@ -71,6 +71,7 @@ class Write():
             self.iface.messageBar().pushMessage("Error", "Es gibt Probleme mit der Projektdatei, bitte überprüfen Sie diese.", level=QgsMessageBar.CRITICAL)
             return
 
+        QgsMessageLog.logMessage("XML wurde erfolgreich eingelesen.", 'All-In-One Geopackage', QgsMessageLog.INFO)
         root = xmltree.getroot()
         projectlayers = root.find("projectlayers")
 
@@ -79,6 +80,7 @@ class Write():
         for layer in projectlayers:
             layer_path = self.make_path_absolute(layer.find("datasource").text.split("|")[0], project_path)
             if layer_path not in sources:
+                QgsMessageLog.logMessage("Quelldatei gefunden: " + layer_path, 'All-In-One Geopackage', QgsMessageLog.INFO)
                 sources.append(layer_path)
 
         # Sind mehrere Datenquellen vorhanden müssen deren Ursprung überprüft werden
@@ -92,8 +94,10 @@ class Write():
                     elif self.check_gpkg(path) and gpkg_found:
                         # Hat ein Projekt Layer aus verschiedenen GeoPackage Datenbanken,
                         # kann das Einschreiben nicht ausgeführt werden
+                        QgsMessageLog.logMessage("Es werden mehrere GeoPackage Datenbanken vom Projekt benutzt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
                         self.iface.messageBar().pushMessage("Error", "Es werden mehrere GeoPackage Datenbanken vom Projekt benutzt.", level=QgsMessageBar.CRITICAL)
                         return
+            QgsMessageLog.logMessage("Es kann nicht garantiert werden, dass Layer, welche nicht im GeoPackage gespeichert sind, beim auslesen richtig angezeigt werden.", 'All-In-One Geopackage', QgsMessageLog.WARNING)
             self.iface.messageBar().pushMessage("Warnung", "Es kann nicht garantiert werden, dass Layer, welche nicht im GeoPackage gespeichert sind, beim auslesen richtig angezeigt werden.", level=QgsMessageBar.WARNING)
         else:
             gpkg_path = sources[0]
@@ -111,6 +115,7 @@ class Write():
             for comp in composer:
                 img = self.make_path_absolute(comp.find("ComposerPicture").attrib['file'], project_path)
                 if img not in images:
+                    QgsMessageLog.logMessage("Bilddatei gefunden: " + img, 'All-In-One Geopackage', QgsMessageLog.INFO)
                     images.append(img)
 
         # Die Daten werden in die Datenbank eingeschrieben
@@ -123,10 +128,14 @@ class Write():
             reply = QMessageBox.question(self.parent, "Warnung", "Es ist bereits ein Projekt vorhanden, \nSoll dieses Überschrieben werden?", QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes
             if reply:
                 self.c.execute('UPDATE _qgis SET name=?, xml=?', inserts)
+                QgsMessageLog.logMessage("Projekttabelle wurde ersetzt.", 'All-In-One Geopackage', QgsMessageLog.INFO)
+            else:
+                QgsMessageLog.logMessage("Verarbeitung abgebrochen.", 'All-In-One Geopackage', QgsMessageLog.INFO)
         except sqlite3.OperationalError:
             self.c.execute('CREATE TABLE _qgis (name text, xml text)')
             self.c.execute('INSERT INTO _qgis VALUES (?,?)', inserts)
             self.c.execute('INSERT INTO gpkg_extensions VALUES (?,?,?,?,?)', extensions)
+            QgsMessageLog.logMessage("Projekt " + inserts[0] + " wurde gespeichert.", 'All-In-One Geopackage', QgsMessageLog.INFO)
 
         if images:
             # Falls vorhanden, werden hier die Bilder in die Datenbank eingelesen
@@ -144,4 +153,5 @@ class Write():
                         name, type = os.path.splitext(os.path.basename(image))
                         inserts = (name, type, sqlite3.Binary(blob))
                         self.conn.execute('INSERT INTO _img_project VALUES(?, ?, ?)', inserts)
+                        QgsMessageLog.logMessage("Bild " + name + " wurde gespeichert.", 'All-In-One Geopackage', QgsMessageLog.INFO)
         self.conn.commit()

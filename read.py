@@ -42,6 +42,7 @@ class Read():
         # Überprüfen ob es sich um eine GeoPackage Datei handelt
         self.database_connect(gpkg_path)
         if not self.check_gpkg(gpkg_path):
+            QgsMessageLog.logMessage("Es wurde kein GeoPackage ausgewählt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
             self.iface.messageBar().pushMessage("Error", "Bitte wählen Sie eine GeoPackage Datei.", level=QgsMessageBar.CRITICAL)
             return
 
@@ -49,11 +50,13 @@ class Read():
         try:
             self.c.execute('SELECT name, xml FROM _qgis')
         except sqlite3.OperationalError:
+            QgsMessageLog.logMessage("Es befindet sich keine Projektdatei in der Datenbank.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
             self.iface.messageBar().pushMessage("Error", "Es befindet sich keine Projektdatei in der Datenbank.", level=QgsMessageBar.CRITICAL)
             return
         file_name, xml = self.c.fetchone()
         xml_tree = ET.ElementTree()
         root = ET.fromstring(xml)
+        QgsMessageLog.logMessage("XML wurde ausgelesen.", 'All-In-One Geopackage', QgsMessageLog.INFO)
         xml_tree._setroot(root)
         projectlayers = root.find("projectlayers")
 
@@ -72,6 +75,7 @@ class Read():
                             layer_element.text += "|" + layer_info[i]
                 elif len(layer_info) == 1:
                     layer_element.text = layer_path
+                QgsMessageLog.logMessage("Layerpfad von Layer " + layer.find("layername").text + " wurde angepasst.", 'All-In-One Geopackage', QgsMessageLog.INFO)
 
         # Überprüfen, ob im Composer ein Bild enthalten ist
         composer_list = root.findall("Composer")
@@ -82,6 +86,7 @@ class Read():
                 img = self.make_path_absolute(composer_picture.attrib['file'], project_path)
                 # Wenn ja, wird der Pfad angepasst
                 composer_picture.set('file', './' + os.path.basename(img))
+                QgsMessageLog.logMessage("Externes Bild " + os.path.basename(img) + " gefunden.", 'All-In-One Geopackage', QgsMessageLog.INFO)
                 images.append(img)
 
         # und das Bild wird im selben ordner wie das Projekt gespeichert
@@ -94,7 +99,9 @@ class Read():
                 img_path = os.path.join(tempfile.gettempdir(), img_name)
                 with open(img_path, 'wb') as file:
                     file.write(blob)
+                QgsMessageLog.logMessage("Bild wurde gespeichert: " + img_name, 'All-In-One Geopackage', QgsMessageLog.INFO)
 
         # Projekt wird gespeichert und gestartet
         xml_tree.write(project_path)
         QgsProject.instance().read(QFileInfo(project_path))
+        QgsMessageLog.logMessage("Projekt wurde gestartet.", 'All-In-One Geopackage', QgsMessageLog.INFO)
