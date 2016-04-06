@@ -99,6 +99,10 @@ class Write():
                         return
             QgsMessageLog.logMessage("Es kann nicht garantiert werden, dass Layer, welche nicht im GeoPackage gespeichert sind, beim auslesen richtig angezeigt werden.", 'All-In-One Geopackage', QgsMessageLog.WARNING)
             self.iface.messageBar().pushMessage("Warnung", "Es kann nicht garantiert werden, dass Layer, welche nicht im GeoPackage gespeichert sind, beim auslesen richtig angezeigt werden.", level=QgsMessageBar.WARNING)
+        elif len(sources) == 0:
+            QgsMessageLog.logMessage("Es befinden sich keine GeoPackage Layer im Projekt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Es befinden sich keine GeoPackage Layer im Projekt.", level=QgsMessageBar.CRITICAL)
+            return
         else:
             gpkg_path = sources[0]
 
