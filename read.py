@@ -4,7 +4,6 @@ import tempfile
 import sqlite3
 import os
 from qgis.core import *
-from qgis.gui import *
 from PyQt4.QtCore import *
 from xml.etree import ElementTree as ET
 
@@ -57,7 +56,7 @@ class Read():
         for layer in projectlayers:
             layer_element = layer.find("datasource")
             layer_info = layer_element.text.split("|")
-            layer_path = self.make_path_absolute(layer_info[0], project_path)
+            layer_path = self.make_path_absolute(layer_info[0], gpkg_path)
             if layer_path.endswith('.gpkg'):
                 if len(layer_info) >= 2:
                     for i in range(len(layer_info)):
@@ -89,4 +88,6 @@ class Read():
                 img_path = os.path.join(tempfile.gettempdir(), img_name)
                 with open(img_path, 'wb') as file:
                     file.write(blob)
+        # Projekt wird gespeichert und gestartet
         xml_tree.write(project_path)
+        QgsProject.instance().read(QFileInfo(project_path))
