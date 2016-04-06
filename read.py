@@ -54,8 +54,13 @@ class Read():
             self.iface.messageBar().pushMessage("Error", "Es befindet sich keine Projektdatei in der Datenbank.", level=QgsMessageBar.CRITICAL)
             return
         file_name, xml = self.c.fetchone()
-        xml_tree = ET.ElementTree()
-        root = ET.fromstring(xml)
+        try:
+            xml_tree = ET.ElementTree()
+            root = ET.fromstring(xml)
+        except:
+            QgsMessageLog.logMessage("Das Projekt in der GeoPackage Datenbank ist defekt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", "Das Projekt in der GeoPackage Datenbank ist defekt, bitte überprüfen Sie dieses.", level=QgsMessageBar.CRITICAL)
+            return
         QgsMessageLog.logMessage("XML wurde ausgelesen.", 'All-In-One Geopackage', QgsMessageLog.INFO)
         xml_tree._setroot(root)
         projectlayers = root.find("projectlayers")
