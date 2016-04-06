@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding=latin-1
 """
 /***************************************************************************
  AllInOneGeopackage
@@ -68,4 +68,7 @@ class AllInOneGeopackage:
         write.run()
 
     def read(self):
-        read = Read(self.iface, self.iface.mainWindow())
+        path = QFileDialog.getOpenFileName(self.iface.mainWindow(), "Wähle GeoPackage...", None, "GeoPackage (*.gpkg)")
+        if path:
+            read = Read(self.iface, self.iface.mainWindow())
+            read.run(path)
