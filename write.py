@@ -131,7 +131,7 @@ class Write(QObject):
         try:
             # If a project is already inserted, ask if the user wants to overwrite it
             self.c.execute('SELECT name FROM _qgis')
-            reply = QMessageBox.question(self.parent, self.tr(u"Warning"), self.tr(u"Ther is already a project in the GeoPackage, \nDo you want to overwrite it?"), QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes
+            reply = QMessageBox.question(self.parent, self.tr(u"Warning"), self.tr(u"There is already a project in the GeoPackage, \nDo you want to overwrite it?"), QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes
             if reply:
                 self.c.execute('UPDATE _qgis SET name=?, xml=?', inserts)
                 QgsMessageLog.logMessage(self.tr(u"Project overwritten."), 'All-In-One Geopackage', QgsMessageLog.INFO)

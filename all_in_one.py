@@ -23,6 +23,7 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import resources
+import os
 
 from read import Read
 from write import Write
@@ -38,6 +39,18 @@ class AllInOneGeopackage(QObject):
         self.toolbar.setObjectName(u'All-In-One Geopackage')
 
     def initGui(self):
+
+        pluginPath = QFileInfo(os.path.realpath(__file__)).path()
+        locale = QSettings().value("locale/userLocale", type=str)[0:2]
+        if QFileInfo(pluginPath).exists():
+            localePath = pluginPath + "/i18n/all_in_one_" + locale + ".qm"
+        if QFileInfo(localePath).exists():
+            self.translator = QTranslator()
+            self.translator.load(localePath)
+
+            if qVersion() > '4.3.3':
+                QCoreApplication.installTranslator(self.translator)
+
         self.actionWrite = QAction(
             QIcon(":/plugins/AllInOneGeopackage/write.png"),
             self.tr(u"Write project in GeoPackage"),
