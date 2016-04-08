@@ -86,33 +86,33 @@ class Write(QObject):
                 sources.append(layer_path)
 
         # If there are more than just one different datasource check from where they are from
-        if len(sources) > 1:
-            gpkg_found = False
-            for path in sources:
-                if self.database_connect(path):
-                    if self.check_gpkg(path) and not gpkg_found:
-                        gpkg_found = True
-                        gpkg_path = path
-                    elif self.check_gpkg(path) and gpkg_found:
-                        # If a project has layer from more than just one GeoPackage
-                        # it can't be written
-                        QgsMessageLog.logMessage(self.tr(u"The project uses layers from different GeoPackage databases."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
-                        self.iface.messageBar().pushMessage("Error", self.tr(u"The project uses layers from different GeoPackage databases."), level=QgsMessageBar.CRITICAL)
-                        return
-            QgsMessageLog.logMessage(self.tr(u"Some layers aren't in the GeoPackage. It can't be garanteed that all layers will be shown properly."), 'All-In-One Geopackage', QgsMessageLog.WARNING)
-            self.iface.messageBar().pushMessage(self.tr(u"Warning"), self.tr(u"Some layers aren't in the GeoPackage. It can't be garanteed that all layers will be shown properly."), level=QgsMessageBar.WARNING)
-        elif len(sources) == 0:
+        try:
+            if len(sources) >= 1:
+                gpkg_found = False
+                for path in sources:
+                    if self.database_connect(path):
+                        if self.check_gpkg(path) and not gpkg_found:
+                            gpkg_found = True
+                            gpkg_path = path
+                        elif self.check_gpkg(path) and gpkg_found:
+                            # If a project has layer from more than just one GeoPackage
+                            # it can't be written
+                            QgsMessageLog.logMessage(self.tr(u"The project uses layers from different GeoPackage databases."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+                            self.iface.messageBar().pushMessage("Error", self.tr(u"The project uses layers from different GeoPackage databases."), level=QgsMessageBar.CRITICAL)
+                            return
+                if gpkg_found and len(sources) > 1:
+                    QgsMessageLog.logMessage(self.tr(u"Some layers aren't in the GeoPackage. It can't be garanteed that all layers will be shown properly."), 'All-In-One Geopackage', QgsMessageLog.WARNING)
+                    self.iface.messageBar().pushMessage(self.tr(u"Warning"), self.tr(u"Some layers aren't in the GeoPackage. It can't be garanteed that all layers will be shown properly."), level=QgsMessageBar.WARNING)
+                elif not gpkg_found:
+                    raise
+            else:
+                raise
+        except:
             QgsMessageLog.logMessage(self.tr(u"There is no GeoPackage layer in the project."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
             self.iface.messageBar().pushMessage("Error", self.tr(u"There is no GeoPackage layer in the project."), level=QgsMessageBar.CRITICAL)
             return
-        else:
-            gpkg_path = sources[0]
 
         self.database_connect(gpkg_path)
-
-        if not self.check_gpkg(gpkg_path):
-            # Is the source of the layer not from a GeoPackage the method will be aborted
-            raise
 
         # Check for images in the composer of the project
         composer_list = root.findall("Composer")
