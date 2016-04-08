@@ -9,13 +9,15 @@ from PyQt4.QtCore import *
 from xml.etree import ElementTree as ET
 
 
-class Read():
+class Read(QObject):
     def __init__(self, iface, parent=None):
+        ''' Class initialised '''
+        QObject.__init__(self)
         self.parent = parent
         self.iface = iface
 
     def database_connect(self, path):
-        ''' Datenbank mit sqlite3 Verbinden, bei Fehlschlag wird False zurückgegeben '''
+        ''' Connect database with sqlite3 '''
         try:
             self.conn = sqlite3.connect(path)
             self.c = self.conn.cursor()
@@ -24,7 +26,7 @@ class Read():
             return False
 
     def check_gpkg(self, path):
-        ''' Es wird überprüft, ob die Datei wirklich ein Geopackage ist '''
+        ''' Check if the file is a GeoPackage '''
         try:
             self.c.execute('SELECT * FROM gpkg_contents')
             self.c.fetchone()
@@ -33,39 +35,40 @@ class Read():
             return False
 
     def make_path_absolute(self, path, project_path):
-        ''' Pfad wird Absolut und Betriebsystemübergreifend gemacht'''
+        ''' Make path absolut and handle multiplatform issues '''
         if not os.path.isabs(path):
             path = os.path.join(os.path.dirname(project_path), path)
         return os.path.normpath(path)
 
     def run(self, gpkg_path):
-        # Überprüfen ob es sich um eine GeoPackage Datei handelt
+        ''' Main Method '''
+        # Check if it's a GeoPackage Database
         self.database_connect(gpkg_path)
         if not self.check_gpkg(gpkg_path):
-            QgsMessageLog.logMessage(u"Es wurde kein GeoPackage ausgewählt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
-            self.iface.messageBar().pushMessage(u"Error", "Bitte wählen Sie eine GeoPackage Datei.", level=QgsMessageBar.CRITICAL)
+            QgsMessageLog.logMessage(self.tr(u"No GeoPackage selected."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", self.tr(u"Please choose a GeoPackage."), level=QgsMessageBar.CRITICAL)
             return
 
-        # Den XML-Code aus der Datenbank herauslesen
+        # Read xml from the project in the Database
         try:
             self.c.execute('SELECT name, xml FROM _qgis')
         except sqlite3.OperationalError:
-            QgsMessageLog.logMessage(u"Es befindet sich keine Projektdatei in der Datenbank.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
-            self.iface.messageBar().pushMessage("Error", u"Es befindet sich keine Projektdatei in der Datenbank.", level=QgsMessageBar.CRITICAL)
+            QgsMessageLog.logMessage(self.tr(u"There is no Project file in the database."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", self.tr(u"There is no Project file in the database."), level=QgsMessageBar.CRITICAL)
             return
         file_name, xml = self.c.fetchone()
         try:
             xml_tree = ET.ElementTree()
             root = ET.fromstring(xml)
         except:
-            QgsMessageLog.logMessage(u"Das Projekt in der GeoPackage Datenbank ist defekt.", 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
-            self.iface.messageBar().pushMessage("Error", u"Das Projekt in der GeoPackage Datenbank ist defekt, bitte überprüfen Sie dieses.", level=QgsMessageBar.CRITICAL)
+            QgsMessageLog.logMessage(self.tr(u"The xml code is corrupted."), 'All-In-One Geopackage', QgsMessageLog.CRITICAL)
+            self.iface.messageBar().pushMessage("Error", self.tr(u"The xml code is corrupted, please check the database."), level=QgsMessageBar.CRITICAL)
             return
-        QgsMessageLog.logMessage(u"XML wurde ausgelesen.", 'All-In-One Geopackage', QgsMessageLog.INFO)
+        QgsMessageLog.logMessage(self.tr(u"Xml successfully read."), 'All-In-One Geopackage', QgsMessageLog.INFO)
         xml_tree._setroot(root)
         projectlayers = root.find("projectlayers")
 
-        # layerpfäde im xml werden angepasst
+        # Layerpath in xml adjusted
         tmp_folder = tempfile.mkdtemp()
         project_path = os.path.join(tmp_folder, file_name)
         for layer in projectlayers:
@@ -81,21 +84,21 @@ class Read():
                             layer_element.text += "|" + layer_info[i]
                 elif len(layer_info) == 1:
                     layer_element.text = layer_path
-                QgsMessageLog.logMessage(u"Layerpfad von Layer " + layer.find("layername").text + u" wurde angepasst.", 'All-In-One Geopackage', QgsMessageLog.INFO)
+                QgsMessageLog.logMessage(self.tr(u"Layerpath from layer ") + layer.find("layername").text + self.tr(u" was adjusted."), 'All-In-One Geopackage', QgsMessageLog.INFO)
 
-        # Überprüfen, ob im Composer ein Bild enthalten ist
+        # Check if an image is available
         composer_list = root.findall("Composer")
         images = []
         for composer in composer_list:
             for comp in composer:
                 composer_picture = comp.find("ComposerPicture")
                 img = self.make_path_absolute(composer_picture.attrib['file'], project_path)
-                # Wenn ja, wird der Pfad angepasst
+                # If yes, the path will be adjusted
                 composer_picture.set('file', './' + os.path.basename(img))
-                QgsMessageLog.logMessage(u"Externes Bild " + os.path.basename(img) + u" gefunden.", 'All-In-One Geopackage', QgsMessageLog.INFO)
+                QgsMessageLog.logMessage(self.tr(u"External image ") + os.path.basename(img) + self.tr(u" found."), 'All-In-One Geopackage', QgsMessageLog.INFO)
                 images.append(img)
 
-        # und das Bild wird im selben ordner wie das Projekt gespeichert
+        # and the image will be saved in the same folder as the project
         if images:
             self.c.execute("SELECT name, type, blob FROM _img_project")
             images = self.c.fetchall()
@@ -105,9 +108,9 @@ class Read():
                 img_path = os.path.join(tmp_folder, img_name)
                 with open(img_path, 'wb') as file:
                     file.write(blob)
-                QgsMessageLog.logMessage(u"Bild wurde gespeichert: " + img_name, 'All-In-One Geopackage', QgsMessageLog.INFO)
+                QgsMessageLog.logMessage(self.tr(u"Image saved: ") + img_name, 'All-In-One Geopackage', QgsMessageLog.INFO)
 
-        # Projekt wird gespeichert und gestartet
+        # Project is saved and started
         xml_tree.write(project_path)
         QgsProject.instance().read(QFileInfo(project_path))
-        QgsMessageLog.logMessage(u"Projekt wurde gestartet.", 'All-In-One Geopackage', QgsMessageLog.INFO)
+        QgsMessageLog.logMessage(self.tr(u"Project started."), 'All-In-One Geopackage', QgsMessageLog.INFO)

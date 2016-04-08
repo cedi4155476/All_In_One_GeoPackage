@@ -28,10 +28,11 @@ from read import Read
 from write import Write
 
 
-class AllInOneGeopackage:
+class AllInOneGeopackage(QObject):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
+        QObject.__init__(self)
         self.iface = iface
         self.toolbar = self.iface.addToolBar(u'All-In-One Geopackage')
         self.toolbar.setObjectName(u'All-In-One Geopackage')
@@ -39,20 +40,20 @@ class AllInOneGeopackage:
     def initGui(self):
         self.actionWrite = QAction(
             QIcon(":/plugins/AllInOneGeopackage/write.png"),
-            u"Schreibe Projekt in GeoPackage",
+            self.tr(u"Write project in GeoPackage"),
             self.iface.mainWindow()
         )
-        self.actionWrite.setWhatsThis(u"Schreibe Projekt in GeoPackage")
+        self.actionWrite.setWhatsThis(self.tr(u"Write project in GeoPackage"))
         self.iface.addPluginToMenu("&All-In-One Geopackage", self.actionWrite)
         self.toolbar.addAction(self.actionWrite)
         QObject.connect(self.actionWrite, SIGNAL("triggered()"), self.write)
 
         self.actionRead = QAction(
             QIcon(":/plugins/AllInOneGeopackage/read.png"),
-            u"Lese Projekt aus GeoPackage",
+            self.tr(u"Read project from GeoPackage"),
             self.iface.mainWindow()
         )
-        self.actionRead.setWhatsThis(u"Lese Projekt aus GeoPackage")
+        self.actionRead.setWhatsThis(self.tr(u"Read project from GeoPackage"))
         self.iface.addPluginToMenu("&All-In-One Geopackage", self.actionRead)
         self.toolbar.addAction(self.actionRead)
         QObject.connect(self.actionRead, SIGNAL("triggered()"), self.read)
@@ -68,7 +69,7 @@ class AllInOneGeopackage:
         write.run()
 
     def read(self):
-        path = QFileDialog.getOpenFileName(self.iface.mainWindow(), u"Wähle GeoPackage...", None, "GeoPackage (*.gpkg)")
+        path = QFileDialog.getOpenFileName(self.iface.mainWindow(), self.tr(u"Choose GeoPackage..."), None, "GeoPackage (*.gpkg)")
         if path:
             read = Read(self.iface, self.iface.mainWindow())
             read.run(path)
