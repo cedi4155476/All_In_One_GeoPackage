@@ -74,7 +74,7 @@ class Read(QObject):
         for layer in projectlayers:
             layer_element = layer.find("datasource")
             layer_info = layer_element.text.split("|")
-            layer_path = self.make_path_absolute(layer_info[0], gpkg_path)
+            layer_path = self.make_path_absolute(gpkg_path, layer_info[0])
             if layer_path.endswith('.gpkg'):
                 if len(layer_info) >= 2:
                     for i in range(len(layer_info)):
